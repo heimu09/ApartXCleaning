@@ -12,7 +12,9 @@ pillow = "*"
 drf-yasg = "*"
 djangorestframework-simplejwt = "*"
 django-cors-headers = "*"
-mysqlclient = "*"
+python-dotenv = "*"
+psycopg2-binary = "*"
+django-redis = "*"
 
 [dev-packages]
 

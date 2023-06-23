@@ -1,16 +1,18 @@
 from pathlib import Path
 from datetime import timedelta
+from dotenv import load_dotenv
 
 import os
 
+load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = "django-insecure-1&tn0^0xr^j9d$1018(18egk^m!pmtd9hzl=(ks)j#dtc9x(eu"
+SECRET_KEY = os.getenv("SECRET_KEY")
 
-DEBUG = True
+DEBUG = os.getenv("DEBUG")
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS").split(" ")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -99,11 +101,22 @@ WSGI_APPLICATION = "ApartXCleaning.wsgi.application"
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'heimu69$ApartXCleaning',
-        'USER': 'heimu69',
-        'PASSWORD': 'leopoldfitz',
-        'HOST': 'heimu69.mysql.pythonanywhere-services.com',
+        'ENGINE': os.getenv("SQL_ENGINE"),
+        'NAME': os.getenv("SQL_DATABASE"),
+        'USER': os.getenv("SQL_USER"),
+        'PASSWORD': os.getenv("SQL_PASSWORD"),
+        'HOST': os.getenv("SQL_HOST"),
+        'PORT': os.getenv("SQL_PORT", '5432'),
+    }
+}
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": f"redis://{os.getenv('REDIS_HOST')}:{os.getenv('REDIS_PORT')}/{os.getenv('REDIS_DB')}",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
     }
 }
 
@@ -143,3 +156,10 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 PHONENUMBER_DEFAULT_REGION = 'KZ'
 
 AUTH_USER_MODEL = 'tinder.CustomUser'
+
+EMAIL_HOST = 'smtp.mail.ru'
+EMAIL_PORT = 2525
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+EMAIL_USE_TLS = True
+EMAIL_USE_SSL = False
