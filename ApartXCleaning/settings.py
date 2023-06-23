@@ -98,9 +98,12 @@ TEMPLATES = [
 WSGI_APPLICATION = "ApartXCleaning.wsgi.application"
 
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'heimu69$ApartXCleaning',
+        'USER': 'heimu69',
+        'PASSWORD': 'leopoldfitz',
+        'HOST': 'heimu69.mysql.pythonanywhere-services.com',
     }
 }
 
@@ -139,4 +142,4 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 PHONENUMBER_DEFAULT_REGION = 'KZ'
 
-
+AUTH_USER_MODEL = 'tinder.CustomUser'
