@@ -1,4 +1,5 @@
 from rest_framework import permissions, status, exceptions, generics, response, viewsets
+from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from django_redis import get_redis_connection
@@ -11,8 +12,16 @@ from random import randint
 import json
 import os
 
-from .serializers import RegisterSerializer, ConfirmSerializer, LoginConfirmSerializer, LoginRequestSerializer
-from .models import CustomUser
+from .serializers import (RegisterSerializer, ConfirmSerializer,
+                          LoginConfirmSerializer, LoginRequestSerializer, RoleSelectionSerializer,
+                          OrderSerializer, ProposalSerializer, ReviewSerializer,
+                          CustomUserSerializer)
+from .models import CustomUser, Order, Proposal, Review
+
+
+class IsOppositeRole(permissions.BasePermission):
+    def has_object_permission(self, request, view, obj):
+        return (request.user.role == 'Customer' and 'Customer' != obj.role) or (request.user.role == 'Executor' and 'Executor' != obj.role)
 
 
 class RegisterView(generics.GenericAPIView):
@@ -96,9 +105,15 @@ class ConfirmRegisterView(generics.GenericAPIView):
                                               first_name=user_info['first_name'],
                                               last_name=user_info['last_name'], avatar=user_info['avatar'],
                                               phone_number=user_info['phone_number'])
+        refresh = RefreshToken.for_user(user)
+        token = {
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+        }
         conn.delete(email)
         conn.delete(email + '_confirmation_code')
-        return Response({"message": "Your account has been successfully created."}, status=status.HTTP_201_CREATED)
+
+        return Response({"message": "Your account has been successfully created.", "token": token}, status=status.HTTP_201_CREATED)
 
 
 class RequestLoginView(generics.GenericAPIView):
@@ -160,3 +175,79 @@ class ConfirmLoginView(generics.GenericAPIView):
         conn.delete(email + '_login_code')
 
         return Response({"message": "Logged in successfully.", "token": token}, status=status.HTTP_200_OK)
+
+
+class RoleSelectionView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = RoleSelectionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
+
+
+class CustomUserListView(generics.ListCreateAPIView):
+    queryset = CustomUser.objects.all()
+    serializer_class = CustomUserSerializer
+    permission_classes = [permissions.IsAuthenticated, IsOppositeRole]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role == 'Customer':
+            return CustomUser.objects.filter(role='Executor')
+        return CustomUser.objects.filter(role='Customer')
+
+class CustomUserDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = CustomUser.objects.all()
+    serializer_class = CustomUserSerializer
+    permission_classes = [permissions.IsAuthenticated, IsOppositeRole]
+
+
+class OrderListView(generics.ListCreateAPIView):
+    queryset = Order.objects.all()
+    serializer_class = OrderSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class OrderDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Order.objects.all()
+    serializer_class = OrderSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class ProposalListView(generics.ListCreateAPIView):
+    queryset = Proposal.objects.all()
+    serializer_class = ProposalSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class ProposalDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Proposal.objects.all()
+    serializer_class = ProposalSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class ReviewListView(generics.ListCreateAPIView):
+    queryset = Review.objects.all()
+    serializer_class = ReviewSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class ReviewDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Review.objects.all()
+    serializer_class = ReviewSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class UserProfileView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        serializer = CustomUserSerializer(request.user)
+        return Response(serializer.data)
+
+    def put(self, request):
+        serializer = CustomUserSerializer(request.user, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

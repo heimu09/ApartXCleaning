@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import CustomUser
+from .models import CustomUser, Order, Proposal, Review
+from .constants import ROLES
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -46,3 +47,42 @@ class LoginRequestSerializer(serializers.Serializer):
 class LoginConfirmSerializer(serializers.Serializer):
     email = serializers.EmailField()
     code = serializers.CharField()
+
+class RoleSelectionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomUser
+        fields = ['role']
+
+    def validate_role(self, value):
+        if value not in dict(ROLES):
+            raise serializers.ValidationError('Invalid role selected.')
+        return value
+
+
+class CustomUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomUser
+        fields = '__all__'
+
+
+class OrderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = '__all__'
+        read_only_fields = ('customer',)
+
+    def create(self, validated_data):
+        validated_data['customer'] = self.context['request'].user
+        return super().create(validated_data)
+
+
+class ProposalSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Proposal
+        fields = '__all__'
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Review
+        fields = '__all__'
