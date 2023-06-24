@@ -6,11 +6,11 @@ ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
 # Set work directory
-WORKDIR /code
+WORKDIR /ApartXCleaning
 
 # Install dependencies
-COPY Pipfile Pipfile.lock /code/
+COPY Pipfile Pipfile.lock /ApartXCleaning/
 RUN pip install pipenv && pipenv install --system
 
 # Copy project
-COPY . /code/
+COPY . /ApartXCleaning/

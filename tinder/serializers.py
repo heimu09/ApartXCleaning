@@ -1,7 +1,6 @@
 from rest_framework import serializers
 from .models import CustomUser
-from django_redis import get_redis_connection
-import json
+
 
 class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
@@ -16,5 +15,34 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 
 class ConfirmSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    code = serializers.CharField()
+
+class LoginRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(style={'input_type': 'password'})
+
+    def validate(self, data):
+        email = data.get('email', '')
+        password = data.get('password', '')
+
+        if email and password:
+            user = CustomUser.objects.filter(email=email).first()
+            if user:
+                if user.check_password(password):
+                    data['user'] = user
+                else:
+                    msg = 'Unable to login with provided credentials.'
+                    raise serializers.ValidationError(msg)
+            else:
+                msg = 'User not found.'
+                raise serializers.ValidationError(msg)
+        else:
+            msg = 'Must include "email" and "password".'
+            raise serializers.ValidationError(msg)
+        return data
+
+
+class LoginConfirmSerializer(serializers.Serializer):
     email = serializers.EmailField()
     code = serializers.CharField()
