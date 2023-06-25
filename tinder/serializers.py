@@ -1,6 +1,7 @@
 from rest_framework import serializers
-from .models import CustomUser, Order, Proposal, Review
+from .models import CustomUser, Order, Proposal, Review, Chat, Message, MessageImage
 from .constants import ROLES
+from rest_framework.exceptions import NotFound
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -86,3 +87,45 @@ class ReviewSerializer(serializers.ModelSerializer):
     class Meta:
         model = Review
         fields = '__all__'
+
+
+class MessageImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MessageImage
+        fields = '__all__'
+
+class MessageSerializer(serializers.ModelSerializer):
+    images = MessageImageSerializer(many=True)
+    class Meta:
+        model = Message
+        fields = '__all__'
+
+class ChatSerializer(serializers.ModelSerializer):
+    user_id = serializers.IntegerField(write_only=True)
+    order_id = serializers.IntegerField(write_only=True)
+
+    class Meta:
+        model = Chat
+        fields = ('id', 'user_id', 'order_id')
+
+    def create(self, validated_data):
+        request = self.context.get("request")
+        if request and hasattr(request, "user"):
+            current_user = request.user
+            user_to_chat_with_id = validated_data.pop('user_id')
+            user_to_chat_with = CustomUser.objects.get(id=user_to_chat_with_id)
+
+            order_id = validated_data.pop('order_id')
+            try:
+                order = Order.objects.get(id=order_id)
+            except Order.DoesNotExist:
+                raise NotFound('Order with id {} does not exist.'.format(order_id))
+
+            if current_user.role == 'Customer':
+                chat = Chat.objects.create(customer=current_user, executor=user_to_chat_with, order=order)
+            else:
+                chat = Chat.objects.create(executor=current_user, customer=user_to_chat_with, order=order)
+                
+            return chat
+        else:
+            raise serializers.ValidationError("Error occurred during chat creation.")

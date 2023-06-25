@@ -7,6 +7,7 @@ from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.conf import settings
 from django.core.mail import send_mail
+from django.db.models import Q
 
 from random import randint
 import json
@@ -15,8 +16,10 @@ import os
 from .serializers import (RegisterSerializer, ConfirmSerializer,
                           LoginConfirmSerializer, LoginRequestSerializer, RoleSelectionSerializer,
                           OrderSerializer, ProposalSerializer, ReviewSerializer,
-                          CustomUserSerializer)
-from .models import CustomUser, Order, Proposal, Review
+                          CustomUserSerializer, ChatSerializer, MessageSerializer,
+                          MessageImageSerializer)
+from .models import (CustomUser, Order, Proposal, Review, 
+                     Chat, Message, MessageImage)
 
 
 class IsOppositeRole(permissions.BasePermission):
@@ -227,9 +230,15 @@ class ProposalDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 class ReviewListView(generics.ListCreateAPIView):
-    queryset = Review.objects.all()
     serializer_class = ReviewSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = Review.objects.all()
+        user_id = self.request.query_params.get('user_id', None)
+        if user_id is not None:
+            queryset = queryset.filter(reviewee__id=user_id)
+        return queryset
 
 
 class ReviewDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -251,3 +260,38 @@ class UserProfileView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class ChatListView(generics.ListCreateAPIView):
+    serializer_class = ChatSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        return Chat.objects.filter(Q(customer=user) | Q(executor=user))
+
+
+class ChatDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = ChatSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        return Chat.objects.filter(Q(customer=user) | Q(executor=user))
+
+
+class MessageListView(generics.ListCreateAPIView):
+    serializer_class = MessageSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        return Message.objects.filter(chat__customer=user) | Message.objects.filter(chat__executor=user)
+
+
+class MessageDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = MessageSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        return Message.objects.filter(chat__customer=user) | Message.objects.filter(chat__executor=user)

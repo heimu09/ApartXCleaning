@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from phonenumber_field.modelfields import PhoneNumberField
+from django.conf import settings
 
 
 class CustomUserManager(BaseUserManager):
@@ -72,6 +73,8 @@ class Order(models.Model):
     executor = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='executed_orders')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
     deadline = models.DateTimeField()
+    adress_link = models.URLField(blank=True, null=True)
+    adress = models.CharField(blank=False, null=False)
 
 
 class Proposal(models.Model):
@@ -85,3 +88,22 @@ class Review(models.Model):
     review_text = models.TextField()
     rating = models.IntegerField()
     order = models.ForeignKey(Order, on_delete=models.CASCADE)
+
+
+class Chat(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='chats')
+    customer = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='customer_chats')
+    executor = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='executor_chats')
+
+
+class Message(models.Model):
+    chat = models.ForeignKey(Chat, on_delete=models.CASCADE, related_name='messages')
+    sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='messages')
+    text = models.TextField(blank=True)
+    is_read = models.BooleanField(default=False)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+
+class MessageImage(models.Model):
+    message = models.ForeignKey(Message, on_delete=models.CASCADE, related_name='images')
+    image = models.ImageField(upload_to='chat_images/')

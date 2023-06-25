@@ -3,7 +3,8 @@ from .views import (RegisterView, ConfirmRegisterView, RequestLoginView,
                     ConfirmLoginView, RoleSelectionView, CustomUserListView,
                     CustomUserDetailView, OrderListView, OrderDetailView,
                     ProposalListView, ProposalDetailView, ReviewListView,
-                    ReviewDetailView, UserProfileView)
+                    ReviewDetailView, UserProfileView, ChatListView,
+                    ChatDetailView, MessageListView, MessageDetailView)
 from rest_framework_simplejwt.views import (
     TokenRefreshView,
     TokenVerifyView,
@@ -26,4 +27,8 @@ urlpatterns = [
     path('reviews/', ReviewListView.as_view(), name='review-list'),
     path('reviews/<int:pk>/', ReviewDetailView.as_view(), name='review-detail'),
     path('profile/', UserProfileView.as_view(), name='user_profile'),
+    path('chats/', ChatListView.as_view()),
+    path('chats/<int:pk>/', ChatDetailView.as_view()),
+    path('messages/', MessageListView.as_view()),
+    path('messages/<int:pk>/', MessageDetailView.as_view()),
 ]
